@@ -1,4 +1,3 @@
-// Supabase client factory added to centralise auth and database access for the new pages.
 import { createBrowserClient } from "@supabase/ssr";
 
 export const createSupabaseBrowserClient = () => {
@@ -7,7 +6,7 @@ export const createSupabaseBrowserClient = () => {
 
   if (!supabaseUrl || !supabaseAnonKey) {
     throw new Error(
-      "Supabase environment variables are not configured. Ensure SUPABASE_URL and SUPABASE_ANON are set on the server; these are mapped to NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY during the Docker build."
+      "Supabase environment variables are missing. Add SUPABASE_URL and SUPABASE_ANON to your .env file."
     );
   }
 
