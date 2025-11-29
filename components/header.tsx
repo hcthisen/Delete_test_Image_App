@@ -9,6 +9,7 @@ import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 
 const navigationLinks = [
   { href: "/", label: "Home" },
+  { href: "/avatars", label: "Human Forge" },
   { href: "/terms", label: "Terms" },
   { href: "/privacy", label: "Privacy" },
   { href: "/contact", label: "Contact" },
@@ -60,7 +61,7 @@ export function Header() {
       <div className="header-inner">
         <Link href="/" className="brand">
           <span className="brand-mark" aria-hidden="true" />
-          <span>Your App Name</span>
+          <span>Human Forge</span>
         </Link>
 
         <nav aria-label="Primary" className="nav-links">

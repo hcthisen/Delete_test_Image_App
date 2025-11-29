@@ -5,15 +5,15 @@ export default function HomePage() {
     <div className="space-y-6">
       <section className="hero">
         <div>
-          <p className="page-lead">Supabase-powered starter template</p>
-          <h1 className="page-title">Your App Name</h1>
+          <p className="page-lead">Forge deep digital humans</p>
+          <h1 className="page-title">Human Forge</h1>
           <p className="page-lead">
-            Kickstart your product with pre-built authentication, profile management, and essential legal pages. Replace the
-            copy, plug in your Supabase keys, and ship faster.
+            Craft lifelike avatars with layered traits, narratives, and visuals. Human Forge helps you design research-ready
+            personas powered by Supabase auth, storage, and automation.
           </p>
           <div className="hero-actions">
             <Link className="button" href="/signup">
-              Get started
+              Start forging
             </Link>
             <Link className="button secondary" href="/login">
               Already registered? Log in
@@ -21,29 +21,29 @@ export default function HomePage() {
           </div>
         </div>
         <div className="panel">
-          <h2>What&apos;s included</h2>
+          <h2>What you can build</h2>
           <ul className="list">
-            <li>Email/password authentication with Supabase.</li>
-            <li>Protected profile area with editable fields.</li>
-            <li>Contact, Terms, and Privacy pages with placeholder copy.</li>
-            <li>Clean layout ready for your brand and styling.</li>
+            <li>Manage multiple avatars tied to your Supabase users.</li>
+            <li>Send rich profile data to n8n for persona text and imagery.</li>
+            <li>Store generated images privately in Supabase Storage.</li>
+            <li>Review narrative profiles and scenario galleries at a glance.</li>
           </ul>
         </div>
       </section>
 
       <section className="grid-two">
         <div className="panel">
-          <h2>Ready to customize</h2>
+          <h2>Designed for insight teams</h2>
           <p className="page-lead">
-            Swap the placeholder content with your messaging, connect a real contact handler, and extend the profile with the
-            fields that matter to your team.
+            Capture demographics, mindset, and quirks in one flow. Human Forge keeps details structured so your generators and
+            research tools stay in sync.
           </p>
         </div>
         <div className="panel">
-          <h2>Supabase friendly</h2>
+          <h2>Supabase-native</h2>
           <p className="page-lead">
-            All auth flows and profile persistence run through Supabase. Add policies or tables in `supabase/migrations` to grow
-            alongside your product.
+            Auth, RLS, and Storage keep each user&apos;s humans separate and secure. Extend the schema or policies as you scale your
+            avatar lab.
           </p>
         </div>
       </section>
