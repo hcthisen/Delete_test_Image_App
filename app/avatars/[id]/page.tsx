@@ -10,6 +10,8 @@ import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { getAvatarById, getAvatarImages, getSignedAvatarUrl, getSignedAvatarUrls } from "@/lib/supabase/avatars";
 import type { Avatar, AvatarImage } from "@/lib/types/avatars";
 
+const POLL_INTERVALS = [5000, 10000, 20000, 40000, 80000];
+
 export default function AvatarDetailPage({ params }: { params: { id: string } }) {
   const supabase = useMemo(() => createSupabaseBrowserClient(), []);
   const router = useRouter();
@@ -70,6 +72,51 @@ export default function AvatarDetailPage({ params }: { params: { id: string } })
       isMounted = false;
     };
   }, [avatarId, router, supabase]);
+
+  useEffect(() => {
+    if (!avatar || !user) return;
+    if (avatar.status === "ready" || avatar.status === "failed") return;
+
+    let cancelled = false;
+
+    const pollAvatar = async (attempt = 0): Promise<void> => {
+      if (cancelled || attempt >= POLL_INTERVALS.length) return;
+
+      await new Promise((resolve) => setTimeout(resolve, POLL_INTERVALS[attempt]));
+      if (cancelled) return;
+
+      const { data: latestAvatar, error } = await getAvatarById(supabase, avatarId, user.id);
+      if (error) {
+        console.error(error.message);
+        return;
+      }
+
+      if (!cancelled && latestAvatar) {
+        setAvatar(latestAvatar as Avatar);
+        const signed = await getSignedAvatarUrl(supabase, (latestAvatar as Avatar).profile_image_path);
+        if (!cancelled) setPrimaryImageUrl(signed);
+
+        const { data: imageRows, error: imageError } = await getAvatarImages(supabase, avatarId, user.id);
+        if (imageError) {
+          console.error(imageError.message);
+        } else if (!cancelled && imageRows) {
+          setImages(imageRows as AvatarImage[]);
+          const signedMap = await getSignedAvatarUrls(supabase, imageRows as AvatarImage[]);
+          if (!cancelled) setImageUrls(signedMap);
+        }
+
+        if (latestAvatar.status !== "ready" && latestAvatar.status !== "failed") {
+          pollAvatar(attempt + 1);
+        }
+      }
+    };
+
+    pollAvatar();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [avatar?.status, avatarId, supabase, user]);
 
   const renderStatus = (status: Avatar["status"]) => {
     const labels: Record<Avatar["status"], string> = {

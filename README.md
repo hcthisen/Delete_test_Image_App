@@ -16,7 +16,9 @@ your product.
    npm run dev
    ```
 2. Create a Supabase project and copy your project URL and anon key.
-3. Duplicate `.env.example` to `.env.local` and fill in `SUPABASE_URL` and `SUPABASE_ANON`.
+3. Duplicate `.env.example` to `.env.local` and fill in `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY`.
+   - If you are connecting n8n automations, also add `NEXT_PUBLIC_N8N_AVATAR_WEBHOOK_URL` and `NEXT_PUBLIC_N8N_SCENES_WEBHOOK_URL`
+     with the full HTTPS URLs for your webhook endpoints.
 4. Apply the initial migration to create the `profiles` table:
    ```bash
    supabase db push --project-ref <your-project-ref>
