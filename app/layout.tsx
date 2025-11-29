@@ -5,8 +5,8 @@ import { Header } from "@/components/header";
 import "../styles/app.css";
 
 export const metadata: Metadata = {
-  title: "Supabase Starter App",
-  description: "A minimal Next.js template with Supabase auth, profiles, and starter pages.",
+  title: "Human Forge",
+  description: "Forge rich digital humans with detailed traits, stories, and visuals powered by Supabase.",
   icons: {
     icon: [{ url: "/favicon.svg" }],
   },

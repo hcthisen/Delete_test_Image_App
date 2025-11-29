@@ -265,6 +265,145 @@ footer .footer-inner {
   font-size: 0.95rem;
 }
 
+.avatar-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 1rem;
+}
+
+.avatar-card {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1rem;
+  box-shadow: var(--shadow);
+  display: grid;
+  gap: 0.75rem;
+}
+
+.avatar-card header {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.avatar-thumb {
+  width: 64px;
+  height: 64px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #dbeafe, #e2e8f0);
+  display: grid;
+  place-items: center;
+  color: var(--muted);
+  font-weight: 700;
+  overflow: hidden;
+}
+
+.avatar-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.25rem 0.6rem;
+  border-radius: 999px;
+  font-weight: 700;
+  font-size: 0.85rem;
+  background: #e2e8f0;
+  color: #0f172a;
+}
+
+.pill.pending,
+.pill.generating {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.pill.ready {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.pill.failed {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.avatar-traits {
+  color: var(--muted);
+  font-size: 0.95rem;
+  display: grid;
+  gap: 0.25rem;
+}
+
+.avatar-grid .button.secondary {
+  align-self: flex-start;
+}
+
+.detail-hero {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 1.5rem;
+  align-items: center;
+}
+
+.detail-image {
+  width: 100%;
+  max-width: 420px;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  overflow: hidden;
+  box-shadow: var(--shadow);
+}
+
+.detail-image img {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+.traits-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 0.75rem;
+}
+
+.traits-grid .field {
+  padding: 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: #fff;
+}
+
+.gallery-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 0.75rem;
+}
+
+.gallery-card {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  overflow: hidden;
+  background: #fff;
+  box-shadow: var(--shadow);
+}
+
+.gallery-card img {
+  width: 100%;
+  height: 160px;
+  object-fit: cover;
+  display: block;
+}
+
+.gallery-card .gallery-meta {
+  padding: 0.65rem 0.75rem;
+}
+
 @media (max-width: 640px) {
   .nav-links {
     display: none;
