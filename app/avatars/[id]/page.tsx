@@ -5,6 +5,8 @@ import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import type { User } from "@supabase/supabase-js";
 
+import { logger } from "@/lib/logger";
+import { getRequestId } from "@/lib/request-id";
 import { triggerScenarioGeneration } from "@/lib/n8n";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { getAvatarById, getAvatarImages, getSignedAvatarUrl, getSignedAvatarUrls } from "@/lib/supabase/avatars";
@@ -15,6 +17,7 @@ const POLL_INTERVALS = [5000, 10000, 20000, 40000, 80000];
 export default function AvatarDetailPage({ params }: { params: { id: string } }) {
   const supabase = useMemo(() => createSupabaseBrowserClient(), []);
   const router = useRouter();
+  const requestId = useMemo(() => getRequestId(), []);
   const [user, setUser] = useState<User | null>(null);
   const [avatar, setAvatar] = useState<Avatar | null>(null);
   const [images, setImages] = useState<AvatarImage[]>([]);
@@ -45,17 +48,38 @@ export default function AvatarDetailPage({ params }: { params: { id: string } })
 
       if (!isMounted) return;
       if (error) {
-        console.error(error.message);
+        logger.error({
+          scope: "http.avatar.detail",
+          msg: "Failed to fetch avatar",
+          requestId,
+          userId: currentUser.id,
+          avatarId,
+          err: error,
+        });
       }
 
       if (avatarRow) {
         setAvatar(avatarRow as Avatar);
+        logger.info({
+          scope: "http.avatar.detail",
+          msg: "Avatar loaded",
+          requestId,
+          userId: currentUser.id,
+          avatarId,
+        });
         const signed = await getSignedAvatarUrl(supabase, (avatarRow as Avatar).profile_image_path);
         if (isMounted) setPrimaryImageUrl(signed);
 
         const { data: imageRows, error: imageError } = await getAvatarImages(supabase, avatarId, currentUser.id);
         if (imageError) {
-          console.error(imageError.message);
+          logger.error({
+            scope: "http.avatar.detail",
+            msg: "Failed to fetch avatar images",
+            requestId,
+            userId: currentUser.id,
+            avatarId,
+            err: imageError,
+          });
         } else if (imageRows) {
           setImages(imageRows as AvatarImage[]);
           const signedMap = await getSignedAvatarUrls(supabase, imageRows as AvatarImage[]);
@@ -71,7 +95,7 @@ export default function AvatarDetailPage({ params }: { params: { id: string } })
     return () => {
       isMounted = false;
     };
-  }, [avatarId, router, supabase]);
+  }, [avatarId, requestId, router, supabase]);
 
   useEffect(() => {
     if (!avatar || !user) return;
@@ -87,7 +111,15 @@ export default function AvatarDetailPage({ params }: { params: { id: string } })
 
       const { data: latestAvatar, error } = await getAvatarById(supabase, avatarId, user.id);
       if (error) {
-        console.error(error.message);
+        logger.error({
+          scope: "http.avatar.detail",
+          msg: "Failed to refresh avatar",
+          requestId,
+          userId: user.id,
+          avatarId,
+          err: error,
+          operation: "avatar.refresh",
+        });
         return;
       }
 
@@ -98,7 +130,15 @@ export default function AvatarDetailPage({ params }: { params: { id: string } })
 
         const { data: imageRows, error: imageError } = await getAvatarImages(supabase, avatarId, user.id);
         if (imageError) {
-          console.error(imageError.message);
+          logger.error({
+            scope: "http.avatar.detail",
+            msg: "Failed to refresh avatar images",
+            requestId,
+            userId: user.id,
+            avatarId,
+            err: imageError,
+            operation: "avatar.refresh",
+          });
         } else if (!cancelled && imageRows) {
           setImages(imageRows as AvatarImage[]);
           const signedMap = await getSignedAvatarUrls(supabase, imageRows as AvatarImage[]);
@@ -116,7 +156,7 @@ export default function AvatarDetailPage({ params }: { params: { id: string } })
     return () => {
       cancelled = true;
     };
-  }, [avatar?.status, avatarId, supabase, user]);
+  }, [avatar, avatarId, requestId, supabase, user]);
 
   const renderStatus = (status: Avatar["status"]) => {
     const labels: Record<Avatar["status"], string> = {
@@ -132,10 +172,25 @@ export default function AvatarDetailPage({ params }: { params: { id: string } })
     if (!avatar || !user) return;
     setStatusMessage("Requesting new scenes…");
     try {
-      await triggerScenarioGeneration(avatar, scenarioPrompt || undefined);
+      await triggerScenarioGeneration(avatar, scenarioPrompt || undefined, requestId);
+      logger.info({
+        scope: "http.avatar.scenario",
+        msg: "Scenario generation requested",
+        requestId,
+        userId: user.id,
+        avatarId: avatar.id,
+        payloadSummary: scenarioPrompt ? scenarioPrompt.slice(0, 64) : undefined,
+      });
       setStatusMessage("Scenes requested. Check back in a moment as they render.");
     } catch (error) {
-      console.error(error);
+      logger.error({
+        scope: "http.avatar.scenario",
+        msg: "Scenario generation request failed",
+        requestId,
+        userId: user.id,
+        avatarId: avatar.id,
+        err: error,
+      });
       setStatusMessage("Could not trigger scene generation. Please try again.");
     }
   };
