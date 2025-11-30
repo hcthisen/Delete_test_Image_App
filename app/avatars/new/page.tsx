@@ -4,6 +4,8 @@ import { useRouter } from "next/navigation";
 import { useMemo, useState, type FormEvent } from "react";
 
 import { triggerAvatarGeneration } from "@/lib/n8n";
+import { logger, safeSummary } from "@/lib/logger";
+import { getRequestId } from "@/lib/request-id";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { createAvatar } from "@/lib/supabase/avatars";
 import type { Avatar } from "@/lib/types/avatars";
@@ -52,11 +54,18 @@ export default function NewAvatarPage() {
     setStatus(null);
     setIsSubmitting(true);
 
+    const requestId = getRequestId();
+
     const {
       data: { user },
     } = await supabase.auth.getUser();
 
     if (!user) {
+      logger.warn({
+        scope: "http.avatar.create",
+        msg: "User not authenticated for avatar creation",
+        requestId,
+      });
       router.push("/login");
       return;
     }
@@ -64,6 +73,13 @@ export default function NewAvatarPage() {
     if (!form.name || !form.job_title) {
       setStatus("Name and job title are required to forge an avatar.");
       setIsSubmitting(false);
+      logger.warn({
+        scope: "http.avatar.create",
+        msg: "Avatar creation blocked due to missing fields",
+        requestId,
+        userId: user.id,
+        payloadSummary: { provided: Object.keys(form).filter((key) => Boolean((form as Record<string, unknown>)[key])) },
+      });
       return;
     }
 
@@ -94,15 +110,44 @@ export default function NewAvatarPage() {
     if (error || !created) {
       setStatus(error?.message ?? "Could not forge this avatar. Try again.");
       setIsSubmitting(false);
+      logger.error({
+        scope: "http.avatar.create",
+        msg: "Failed to create avatar record",
+        requestId,
+        userId: user.id,
+        err: error ?? new Error("Avatar creation returned empty response"),
+      });
       return;
     }
 
+    logger.info({
+      scope: "http.avatar.create",
+      msg: "Avatar record created",
+      requestId,
+      userId: user.id,
+      avatarId: created.id,
+      payloadSummary: {
+        name: created.name,
+        jobTitle: created.job_title,
+        city: created.city,
+        hasPersonaSummary: Boolean(created.persona_summary),
+      },
+    });
+
     try {
-      await triggerAvatarGeneration(created as Avatar);
+      await triggerAvatarGeneration(created as Avatar, requestId);
       setStatus("We’re crafting this avatar’s story and face…");
       router.push(`/avatars/${created.id}`);
     } catch (hookError) {
-      console.error(hookError);
+      logger.error({
+        scope: "webhook.error",
+        msg: "Failed to trigger avatar generation webhook",
+        requestId,
+        userId: user.id,
+        avatarId: created.id,
+        err: hookError,
+        payloadSummary: safeSummary({ avatarId: created.id }),
+      });
       setStatus("Avatar saved, but we couldn’t reach the generator. You can retry from the detail page.");
       router.push(`/avatars/${created.id}`);
     } finally {

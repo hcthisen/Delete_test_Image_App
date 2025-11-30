@@ -6,6 +6,8 @@ import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import type { User } from "@supabase/supabase-js";
 
+import { logger } from "@/lib/logger";
+import { getRequestId } from "@/lib/request-id";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { getAvatarsForUser, getSignedAvatarUrl } from "@/lib/supabase/avatars";
 import type { Avatar } from "@/lib/types/avatars";
@@ -13,6 +15,7 @@ import type { Avatar } from "@/lib/types/avatars";
 export default function AvatarsPage() {
   const supabase = useMemo(() => createSupabaseBrowserClient(), []);
   const router = useRouter();
+  const requestId = useMemo(() => getRequestId(), []);
   const [user, setUser] = useState<User | null>(null);
   const [avatars, setAvatars] = useState<Avatar[]>([]);
   const [imageMap, setImageMap] = useState<Record<string, string>>({});
@@ -39,7 +42,13 @@ export default function AvatarsPage() {
 
       if (!isMounted) return;
       if (error) {
-        console.error(error.message);
+        logger.error({
+          scope: "http.avatar.list",
+          msg: "Failed to fetch avatars",
+          requestId,
+          userId: currentUser.id,
+          err: error,
+        });
       }
       if (data) {
         setAvatars(data as Avatar[]);
@@ -49,6 +58,13 @@ export default function AvatarsPage() {
         if (isMounted) {
           setImageMap(Object.fromEntries(urlEntries.filter(([, url]) => Boolean(url)) as [string, string][]));
         }
+        logger.info({
+          scope: "http.avatar.list",
+          msg: "Avatars loaded",
+          requestId,
+          userId: currentUser.id,
+          payloadSummary: { count: data.length },
+        });
       }
 
       setIsLoading(false);
@@ -59,7 +75,7 @@ export default function AvatarsPage() {
     return () => {
       isMounted = false;
     };
-  }, [router, supabase]);
+  }, [requestId, router, supabase]);
 
   const renderStatus = (status: Avatar["status"]) => {
     const labels: Record<Avatar["status"], string> = {

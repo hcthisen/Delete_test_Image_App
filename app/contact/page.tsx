@@ -2,6 +2,9 @@
 
 import { useMemo, useState, type FormEvent } from "react";
 
+import { logger } from "@/lib/logger";
+import { getRequestId } from "@/lib/request-id";
+
 type FieldDescriptor = {
   name: string;
   label: string;
@@ -12,6 +15,7 @@ type FieldDescriptor = {
 
 export default function ContactPage() {
   const [submissionStatus, setSubmissionStatus] = useState<string | null>(null);
+  const requestId = useMemo(() => getRequestId(), []);
 
   const fields = useMemo<FieldDescriptor[]>(
     () => [
@@ -27,7 +31,15 @@ export default function ContactPage() {
     setSubmissionStatus(null);
     const formData = new FormData(event.currentTarget);
 
-    console.log("Contact form submitted", Object.fromEntries(formData.entries()));
+    logger.info({
+      scope: "http.contact.submit",
+      msg: "Contact form submitted (placeholder handler)",
+      requestId,
+      payloadSummary: {
+        providedFields: Array.from(formData.keys()),
+        messageLength: String(formData.get("message") ?? "").length,
+      },
+    });
     event.currentTarget.reset();
     setSubmissionStatus("Thanks for reaching out! Replace this handler with your own integration.");
   };
