@@ -15,7 +15,7 @@ export interface Avatar {
   city?: string | null;
   region?: string | null;
   country?: string | null;
-  hobbies?: string[] | null;
+  hobbies?: string | null;
   political_orientation?: string | null;
   other_traits?: string | null;
   persona_summary?: string | null;

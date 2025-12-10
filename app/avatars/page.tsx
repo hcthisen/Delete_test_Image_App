@@ -143,7 +143,7 @@ export default function AvatarsPage() {
               <div className="avatar-traits">
                 <span>{avatar.city ? `${avatar.city}, ${avatar.country ?? ""}` : avatar.country ?? "Location tbd"}</span>
                 {avatar.political_orientation ? <span>Orientation: {avatar.political_orientation}</span> : null}
-                {avatar.hobbies?.length ? <span>Hobbies: {avatar.hobbies.slice(0, 2).join(", ")}</span> : null}
+                {avatar.hobbies ? <span>Hobbies: {avatar.hobbies}</span> : null}
               </div>
             </Link>
           ))}
