@@ -10,41 +10,51 @@ import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { createAvatar } from "@/lib/supabase/avatars";
 import type { Avatar } from "@/lib/types/avatars";
 
+const ageRangeOptions = [
+  { label: "Baby", value: "baby", numericAge: 1 },
+  { label: "Toddler", value: "toddler", numericAge: 3 },
+  { label: "Child", value: "child", numericAge: 8 },
+  { label: "Teenager", value: "teenager", numericAge: 16 },
+  { label: "Young adult", value: "young-adult", numericAge: 24 },
+  { label: "Adult", value: "adult", numericAge: 34 },
+  { label: "Middle aged", value: "middle-aged", numericAge: 48 },
+  { label: "Older adult", value: "older-adult", numericAge: 64 },
+  { label: "Senior", value: "senior", numericAge: 74 },
+];
+
 const skinToneOptions = [
-  "Caucasian",
-  "Black",
-  "Hispanic/Latino",
-  "East Asian",
-  "South Asian",
-  "Middle Eastern/North African",
-  "Mixed/Other",
+  "Very fair",
+  "Fair",
+  "Medium",
+  "Olive",
+  "Brown",
+  "Dark",
   "Prefer not to say",
 ];
 
-const maritalOptions = ["Single", "In a relationship", "Married", "Divorced", "Widowed", "Prefer not to say"];
-
-const politicalOptions = ["Left", "Center", "Right", "Apolitical", "Prefer not to say"];
+const ethnicityOptions = [
+  "Black or African descent",
+  "East Asian",
+  "Hispanic/Latino",
+  "Indigenous",
+  "Middle Eastern/North African",
+  "South Asian",
+  "Southeast Asian",
+  "White",
+  "Mixed/Other",
+  "Prefer not to say",
+];
 
 export default function NewAvatarPage() {
   const supabase = useMemo(() => createSupabaseBrowserClient(), []);
   const router = useRouter();
   const [form, setForm] = useState({
-    name: "",
-    age: 25,
-    height_cm: "",
-    skin_tone: "",
-    hair_color: "",
-    marital_status: "",
-    job_title: "",
-    industry: "",
-    address_line: "",
-    city: "",
-    region: "",
-    country: "",
-    hobbies: "",
-    political_orientation: "",
-    other_traits: "",
-    persona_summary: "",
+    ageRange: "young-adult",
+    skinTone: "",
+    ethnicity: "",
+    energyLevel: 3,
+    extroversion: 3,
+    misc: "",
   });
   const [status, setStatus] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -70,39 +80,38 @@ export default function NewAvatarPage() {
       return;
     }
 
-    if (!form.name || !form.job_title) {
-      setStatus("Name and job title are required to forge an avatar.");
+    const ageSelection = ageRangeOptions.find((option) => option.value === form.ageRange);
+
+    if (!ageSelection) {
+      setStatus("Please choose an age range to forge an avatar.");
       setIsSubmitting(false);
       logger.warn({
         scope: "http.avatar.create",
-        msg: "Avatar creation blocked due to missing fields",
+        msg: "Avatar creation blocked due to missing age range",
         requestId,
         userId: user.id,
-        payloadSummary: { provided: Object.keys(form).filter((key) => Boolean((form as Record<string, unknown>)[key])) },
       });
       return;
     }
 
+    const generatedName = `New avatar (${ageSelection.label})`;
+
     const payload: Partial<Avatar> = {
       user_id: user.id,
-      name: form.name,
-      age: Number(form.age),
-      height_cm: form.height_cm ? Number(form.height_cm) : null,
-      skin_tone: form.skin_tone || null,
-      hair_color: form.hair_color || null,
-      marital_status: form.marital_status || null,
-      job_title: form.job_title,
-      industry: form.industry || null,
-      address_line: form.address_line || null,
-      city: form.city || null,
-      region: form.region || null,
-      country: form.country || null,
-      hobbies: form.hobbies ? form.hobbies.split(",").map((hobby) => hobby.trim()).filter(Boolean) : null,
-      political_orientation: form.political_orientation || null,
-      other_traits: form.other_traits || null,
+      name: generatedName,
+      age: ageSelection.numericAge,
+      skin_tone: form.skinTone || null,
+      other_traits: form.misc || null,
       persona_summary: null,
       profile_image_path: null,
       status: "generating",
+      extra_attributes: {
+        age_range: ageSelection.label,
+        ethnicity: form.ethnicity || null,
+        skin_tone_choice: form.skinTone || null,
+        energy_level: form.energyLevel,
+        extroversion: form.extroversion,
+      },
     };
 
     const { data: created, error } = await createAvatar(supabase, payload as Avatar);
@@ -158,36 +167,41 @@ export default function NewAvatarPage() {
   return (
     <div className="panel">
       <h1 className="page-title">Forge a new avatar</h1>
-      <p className="page-lead">Describe who this person is. The more detail you provide, the more realistic your avatar becomes.</p>
+      <p className="page-lead">
+        Start with a few quick sliders and dropdowns. We’ll fill in names, backstories, and extra details automatically.
+      </p>
 
       <form className="form-card" onSubmit={handleSubmit}>
         <section className="space-y-2">
-          <h2>Core identity</h2>
+          <h2>Quick basics</h2>
           <label className="field">
-            <span className="label">Name</span>
-            <input className="input" value={form.name} onChange={(event) => setForm({ ...form, name: event.target.value })} required />
+            <span className="label">Age range</span>
+            <select
+              className="input"
+              value={form.ageRange}
+              onChange={(event) => setForm({ ...form, ageRange: event.target.value })}
+            >
+              {ageRangeOptions.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
           </label>
           <label className="field">
-            <span className="label">Age</span>
-            <input
+            <span className="label">Ethnicity</span>
+            <select
               className="input"
-              type="number"
-              min={0}
-              max={100}
-              value={form.age}
-              onChange={(event) => setForm({ ...form, age: Number(event.target.value) })}
-              required
-            />
-          </label>
-          <label className="field">
-            <span className="label">Height (cm)</span>
-            <input
-              className="input"
-              type="number"
-              value={form.height_cm}
-              onChange={(event) => setForm({ ...form, height_cm: event.target.value })}
-              placeholder="Optional"
-            />
+              value={form.ethnicity}
+              onChange={(event) => setForm({ ...form, ethnicity: event.target.value })}
+            >
+              <option value="">Choose an option</option>
+              {ethnicityOptions.map((option) => (
+                <option key={option} value={option}>
+                  {option}
+                </option>
+              ))}
+            </select>
           </label>
         </section>
 
@@ -197,10 +211,10 @@ export default function NewAvatarPage() {
             <span className="label">Skin tone</span>
             <select
               className="input"
-              value={form.skin_tone}
-              onChange={(event) => setForm({ ...form, skin_tone: event.target.value })}
+              value={form.skinTone}
+              onChange={(event) => setForm({ ...form, skinTone: event.target.value })}
             >
-              <option value="">Select skin tone</option>
+              <option value="">Choose an option</option>
               {skinToneOptions.map((tone) => (
                 <option key={tone} value={tone}>
                   {tone}
@@ -208,118 +222,45 @@ export default function NewAvatarPage() {
               ))}
             </select>
           </label>
+        </section>
+
+        <section className="space-y-2">
+          <h2>Personality vibes</h2>
           <label className="field">
-            <span className="label">Hair color</span>
+            <span className="label">Energy level</span>
             <input
               className="input"
-              value={form.hair_color}
-              onChange={(event) => setForm({ ...form, hair_color: event.target.value })}
-              placeholder="Blonde, brown, black, red, gray…"
+              type="range"
+              min={1}
+              max={5}
+              value={form.energyLevel}
+              onChange={(event) => setForm({ ...form, energyLevel: Number(event.target.value) })}
             />
+            <small className="page-lead">1 = calm and measured, 5 = high-energy go-getter</small>
+          </label>
+          <label className="field">
+            <span className="label">Social comfort</span>
+            <input
+              className="input"
+              type="range"
+              min={1}
+              max={5}
+              value={form.extroversion}
+              onChange={(event) => setForm({ ...form, extroversion: Number(event.target.value) })}
+            />
+            <small className="page-lead">1 = reserved observer, 5 = outgoing extrovert</small>
           </label>
         </section>
 
         <section className="space-y-2">
-          <h2>Life &amp; work</h2>
-          <label className="field">
-            <span className="label">Job title</span>
-            <input
-              className="input"
-              value={form.job_title}
-              onChange={(event) => setForm({ ...form, job_title: event.target.value })}
-              placeholder="Software engineer, bartender, hairdresser…"
-              required
-            />
-          </label>
-          <label className="field">
-            <span className="label">Industry</span>
-            <input
-              className="input"
-              value={form.industry}
-              onChange={(event) => setForm({ ...form, industry: event.target.value })}
-              placeholder="Optional"
-            />
-          </label>
-          <label className="field">
-            <span className="label">Marital status</span>
-            <select
-              className="input"
-              value={form.marital_status}
-              onChange={(event) => setForm({ ...form, marital_status: event.target.value })}
-            >
-              <option value="">Select status</option>
-              {maritalOptions.map((option) => (
-                <option key={option} value={option}>
-                  {option}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className="field">
-            <span className="label">Address line</span>
-            <input className="input" value={form.address_line} onChange={(event) => setForm({ ...form, address_line: event.target.value })} />
-          </label>
-          <label className="field">
-            <span className="label">City</span>
-            <input className="input" value={form.city} onChange={(event) => setForm({ ...form, city: event.target.value })} />
-          </label>
-          <label className="field">
-            <span className="label">Region / State</span>
-            <input className="input" value={form.region} onChange={(event) => setForm({ ...form, region: event.target.value })} />
-          </label>
-          <label className="field">
-            <span className="label">Country</span>
-            <input className="input" value={form.country} onChange={(event) => setForm({ ...form, country: event.target.value })} />
-          </label>
-        </section>
-
-        <section className="space-y-2">
-          <h2>Mindset &amp; lifestyle</h2>
-          <label className="field">
-            <span className="label">Hobbies</span>
-            <input
-              className="input"
-              value={form.hobbies}
-              onChange={(event) => setForm({ ...form, hobbies: event.target.value })}
-              placeholder="Comma separated: running, cooking, gaming"
-            />
-          </label>
-          <label className="field">
-            <span className="label">Political orientation</span>
-            <select
-              className="input"
-              value={form.political_orientation}
-              onChange={(event) => setForm({ ...form, political_orientation: event.target.value })}
-            >
-              <option value="">Select orientation</option>
-              {politicalOptions.map((option) => (
-                <option key={option} value={option}>
-                  {option}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className="field">
-            <span className="label">Short about</span>
-            <textarea
-              className="textarea"
-              value={form.persona_summary}
-              onChange={(event) => setForm({ ...form, persona_summary: event.target.value })}
-              placeholder="How would you describe this person in 2–3 sentences?"
-            />
-          </label>
-        </section>
-
-        <section className="space-y-2">
-          <h2>Other traits &amp; quirks</h2>
+          <h2>MISC input</h2>
           <p className="page-lead" style={{ margin: 0 }}>
-            Go wild: “long blonde hair”, “full beard”, “sleeve tattoo”, “always wears a leather jacket” — any detail that makes
-            this avatar feel real.
+            Add anything unique: “long beard”, “blue-eyed and blonde”, “loves vintage motorcycles”, or any quirks you want.
           </p>
           <textarea
             className="textarea"
-            value={form.other_traits}
-            onChange={(event) => setForm({ ...form, other_traits: event.target.value })}
+            value={form.misc}
+            onChange={(event) => setForm({ ...form, misc: event.target.value })}
           />
         </section>
 
