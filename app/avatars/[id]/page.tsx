@@ -9,7 +9,11 @@ import { logger } from "@/lib/logger";
 import { getRequestId } from "@/lib/request-id";
 import { triggerScenarioGeneration } from "@/lib/n8n";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
-import { getAvatarById, getAvatarImages, getSignedAvatarUrl, getSignedAvatarUrls } from "@/lib/supabase/avatars";
+import {
+  getAvatarById,
+  getAvatarImages,
+  setPrimaryAvatarImage,
+} from "@/lib/supabase/avatars";
 import type { Avatar, AvatarImage } from "@/lib/types/avatars";
 
 const POLL_INTERVALS = [5000, 10000, 20000, 40000, 80000];
@@ -67,9 +71,6 @@ export default function AvatarDetailPage({ params }: { params: { id: string } })
           userId: currentUser.id,
           avatarId,
         });
-        const signed = await getSignedAvatarUrl(supabase, (avatarRow as Avatar).profile_image_path);
-        if (isMounted) setPrimaryImageUrl(signed);
-
         const { data: imageRows, error: imageError } = await getAvatarImages(supabase, avatarId, currentUser.id);
         if (imageError) {
           logger.error({
@@ -81,9 +82,16 @@ export default function AvatarDetailPage({ params }: { params: { id: string } })
             err: imageError,
           });
         } else if (imageRows) {
-          setImages(imageRows as AvatarImage[]);
-          const signedMap = await getSignedAvatarUrls(supabase, imageRows as AvatarImage[]);
-          if (isMounted) setImageUrls(signedMap);
+          const typedImages = imageRows as AvatarImage[];
+          setImages(typedImages);
+          const urlMap = Object.fromEntries(
+            typedImages.map((image) => [image.id, image.storage_path]).filter(([, url]) => Boolean(url)) as [string, string][]
+          );
+          if (isMounted) {
+            setImageUrls(urlMap);
+            const primaryImage = typedImages.find((image) => image.is_primary);
+            setPrimaryImageUrl(primaryImage ? primaryImage.storage_path : null);
+          }
         }
       }
 
@@ -125,9 +133,6 @@ export default function AvatarDetailPage({ params }: { params: { id: string } })
 
       if (!cancelled && latestAvatar) {
         setAvatar(latestAvatar as Avatar);
-        const signed = await getSignedAvatarUrl(supabase, (latestAvatar as Avatar).profile_image_path);
-        if (!cancelled) setPrimaryImageUrl(signed);
-
         const { data: imageRows, error: imageError } = await getAvatarImages(supabase, avatarId, user.id);
         if (imageError) {
           logger.error({
@@ -140,9 +145,16 @@ export default function AvatarDetailPage({ params }: { params: { id: string } })
             operation: "avatar.refresh",
           });
         } else if (!cancelled && imageRows) {
-          setImages(imageRows as AvatarImage[]);
-          const signedMap = await getSignedAvatarUrls(supabase, imageRows as AvatarImage[]);
-          if (!cancelled) setImageUrls(signedMap);
+          const typedImages = imageRows as AvatarImage[];
+          setImages(typedImages);
+          const urlMap = Object.fromEntries(
+            typedImages.map((image) => [image.id, image.storage_path]).filter(([, url]) => Boolean(url)) as [string, string][]
+          );
+          if (!cancelled) {
+            setImageUrls(urlMap);
+            const primaryImage = typedImages.find((image) => image.is_primary);
+            setPrimaryImageUrl(primaryImage ? primaryImage.storage_path : null);
+          }
         }
 
         if (latestAvatar.status !== "ready" && latestAvatar.status !== "failed") {
@@ -192,6 +204,42 @@ export default function AvatarDetailPage({ params }: { params: { id: string } })
         err: error,
       });
       setStatusMessage("Could not trigger scene generation. Please try again.");
+    }
+  };
+
+  const handleSetPrimaryImage = async (image: AvatarImage) => {
+    if (!avatar || !user || image.is_primary) return;
+    setStatusMessage("Updating primary image…");
+
+    const { data, error } = await setPrimaryAvatarImage(supabase, image.id);
+
+    if (error) {
+      logger.error({
+        scope: "http.avatar.primary",
+        msg: "Failed to set primary avatar image",
+        requestId,
+        userId: user.id,
+        avatarId: avatar.id,
+        err: error,
+        imageId: image.id,
+      });
+      setStatusMessage("Could not update primary image. Please try again.");
+      return;
+    }
+
+    setImages((previous) => previous.map((img) => ({ ...img, is_primary: img.id === image.id })));
+    setPrimaryImageUrl(image.storage_path);
+    setStatusMessage("Profile image updated.");
+
+    if (data) {
+      logger.info({
+        scope: "http.avatar.primary",
+        msg: "Primary avatar image updated",
+        requestId,
+        userId: user.id,
+        avatarId: avatar.id,
+        imageId: image.id,
+      });
     }
   };
 
@@ -297,7 +345,9 @@ export default function AvatarDetailPage({ params }: { params: { id: string } })
           <p className="page-lead">No scenes yet. Generate more to see this avatar in action.</p>
         ) : (
           <div className="gallery-grid">
-            {images.map((image) => (
+            {images
+              .filter((image) => !image.is_primary)
+              .map((image) => (
               <div key={image.id} className="gallery-card">
                 {imageUrls[image.id] ? (
                   <Image src={imageUrls[image.id]} alt={image.label ?? image.type} width={400} height={320} style={{ width: "100%", height: "auto" }} />
@@ -309,9 +359,12 @@ export default function AvatarDetailPage({ params }: { params: { id: string } })
                 <div className="gallery-meta">
                   <strong>{image.label || image.type}</strong>
                   {image.description ? <p className="page-lead" style={{ margin: 0 }}>{image.description}</p> : null}
+                  <button className="button" type="button" onClick={() => handleSetPrimaryImage(image)}>
+                    Set as profile image
+                  </button>
                 </div>
               </div>
-            ))}
+              ))}
           </div>
         )}
       </div>
