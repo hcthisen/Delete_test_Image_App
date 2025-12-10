@@ -56,20 +56,19 @@ export async function getPrimaryAvatarImages(
     .eq("is_primary", true);
 }
 
-export async function getSignedAvatarUrl(supabase: SupabaseClient, path: string | null | undefined) {
+export async function getPublicAvatarUrl(supabase: SupabaseClient, path: string | null | undefined) {
   if (!path) return null;
-  const { data, error } = await supabase.storage.from(AVATAR_BUCKET).createSignedUrl(path, 60 * 60);
-  if (error || !data) return null;
-  return data.signedUrl;
+  const { data } = supabase.storage.from(AVATAR_BUCKET).getPublicUrl(path);
+  return data.publicUrl ?? null;
 }
 
-export async function getSignedAvatarUrls(
+export async function getPublicAvatarUrls(
   supabase: SupabaseClient,
   images: AvatarImage[]
 ): Promise<Record<string, string>> {
   const entries = await Promise.all(
     images.map(async (image) => {
-      const url = await getSignedAvatarUrl(supabase, image.storage_path);
+      const url = await getPublicAvatarUrl(supabase, image.storage_path);
       return [image.id, url] as const;
     })
   );

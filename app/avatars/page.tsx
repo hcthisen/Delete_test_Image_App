@@ -9,7 +9,7 @@ import type { User } from "@supabase/supabase-js";
 import { logger } from "@/lib/logger";
 import { getRequestId } from "@/lib/request-id";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
-import { getAvatarsForUser, getPrimaryAvatarImages, getSignedAvatarUrls } from "@/lib/supabase/avatars";
+import { getAvatarsForUser, getPrimaryAvatarImages, getPublicAvatarUrls } from "@/lib/supabase/avatars";
 import type { Avatar, AvatarImage } from "@/lib/types/avatars";
 
 export default function AvatarsPage() {
@@ -71,9 +71,9 @@ export default function AvatarsPage() {
 
         if (isMounted && primaryImages) {
           const typedPrimaryImages = primaryImages as AvatarImage[];
-          const signedUrls = await getSignedAvatarUrls(supabase, typedPrimaryImages);
+          const publicUrls = await getPublicAvatarUrls(supabase, typedPrimaryImages);
           const avatarToUrl = Object.fromEntries(
-            Object.entries(signedUrls)
+            Object.entries(publicUrls)
               .map(([imageId, url]) => {
                 const matchingImage = typedPrimaryImages.find((img) => img.id === imageId);
                 return matchingImage ? [matchingImage.avatar_id, url] : null;
