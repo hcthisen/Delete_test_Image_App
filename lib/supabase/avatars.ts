@@ -58,6 +58,7 @@ export async function getPrimaryAvatarImages(
 
 export async function getPublicAvatarUrl(supabase: SupabaseClient, path: string | null | undefined) {
   if (!path) return null;
+  if (path.startsWith("http")) return path;
   const { data } = supabase.storage.from(AVATAR_BUCKET).getPublicUrl(path);
   return data.publicUrl ?? null;
 }
