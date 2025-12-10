@@ -6,6 +6,7 @@ type LogContext = {
   requestId?: string;
   userId?: string | null;
   avatarId?: string;
+  imageId?: string;
   jobId?: string;
   taskId?: string;
   operation?: string;
@@ -103,6 +104,7 @@ function buildBaseEntry(level: LogLevel, context: LogContext) {
     requestId: context.requestId,
     userId: maskUserId(context.userId ?? undefined),
     avatarId: context.avatarId,
+    imageId: context.imageId,
     jobId: context.jobId,
     taskId: context.taskId,
     operation: context.operation,
