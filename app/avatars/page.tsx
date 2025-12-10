@@ -9,7 +9,7 @@ import type { User } from "@supabase/supabase-js";
 import { logger } from "@/lib/logger";
 import { getRequestId } from "@/lib/request-id";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
-import { getAvatarsForUser, getSignedAvatarUrl } from "@/lib/supabase/avatars";
+import { getAvatarsForUser, getPrimaryAvatarImages } from "@/lib/supabase/avatars";
 import type { Avatar } from "@/lib/types/avatars";
 
 export default function AvatarsPage() {
@@ -52,10 +52,25 @@ export default function AvatarsPage() {
       }
       if (data) {
         setAvatars(data as Avatar[]);
-        const urlEntries = await Promise.all(
-          data.map(async (avatar) => [avatar.id, await getSignedAvatarUrl(supabase, avatar.profile_image_path)])
+        const avatarIds = data.map((avatar) => avatar.id);
+        const { data: primaryImages, error: primaryError } = await getPrimaryAvatarImages(
+          supabase,
+          avatarIds,
+          currentUser.id
         );
-        if (isMounted) {
+
+        if (primaryError) {
+          logger.error({
+            scope: "http.avatar.list",
+            msg: "Failed to fetch primary avatar images",
+            requestId,
+            userId: currentUser.id,
+            err: primaryError,
+          });
+        }
+
+        if (isMounted && primaryImages) {
+          const urlEntries = primaryImages.map((image) => [image.avatar_id, image.storage_path]);
           setImageMap(Object.fromEntries(urlEntries.filter(([, url]) => Boolean(url)) as [string, string][]));
         }
         logger.info({

@@ -35,7 +35,25 @@ export async function getAvatarImages(supabase: SupabaseClient, avatarId: string
     .select("*")
     .eq("avatar_id", avatarId)
     .eq("user_id", userId)
+    .order("is_primary", { ascending: false })
     .order("created_at", { ascending: false });
+}
+
+export async function getPrimaryAvatarImages(
+  supabase: SupabaseClient,
+  avatarIds: string[],
+  userId: string
+) {
+  if (avatarIds.length === 0) {
+    return { data: [], error: null };
+  }
+
+  return supabase
+    .from("avatar_images")
+    .select("*")
+    .in("avatar_id", avatarIds)
+    .eq("user_id", userId)
+    .eq("is_primary", true);
 }
 
 export async function getSignedAvatarUrl(supabase: SupabaseClient, path: string | null | undefined) {
@@ -56,4 +74,8 @@ export async function getSignedAvatarUrls(
     })
   );
   return Object.fromEntries(entries.filter(([, url]) => Boolean(url)) as [string, string][]);
+}
+
+export async function setPrimaryAvatarImage(supabase: SupabaseClient, targetImageId: string) {
+  return supabase.rpc("set_primary_avatar_image", { target_image_id: targetImageId });
 }
