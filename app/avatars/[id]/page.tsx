@@ -12,6 +12,8 @@ import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import {
   getAvatarById,
   getAvatarImages,
+  getSignedAvatarUrl,
+  getSignedAvatarUrls,
   setPrimaryAvatarImage,
 } from "@/lib/supabase/avatars";
 import type { Avatar, AvatarImage } from "@/lib/types/avatars";
@@ -84,13 +86,14 @@ export default function AvatarDetailPage({ params }: { params: { id: string } })
         } else if (imageRows) {
           const typedImages = imageRows as AvatarImage[];
           setImages(typedImages);
-          const urlMap = Object.fromEntries(
-            typedImages.map((image) => [image.id, image.storage_path]).filter(([, url]) => Boolean(url)) as [string, string][]
-          );
+          const urlMap = await getSignedAvatarUrls(supabase, typedImages);
           if (isMounted) {
             setImageUrls(urlMap);
             const primaryImage = typedImages.find((image) => image.is_primary);
-            setPrimaryImageUrl(primaryImage ? primaryImage.storage_path : null);
+            const primarySignedUrl = primaryImage
+              ? await getSignedAvatarUrl(supabase, primaryImage.storage_path)
+              : null;
+            setPrimaryImageUrl(primarySignedUrl);
           }
         }
       }
@@ -147,13 +150,14 @@ export default function AvatarDetailPage({ params }: { params: { id: string } })
         } else if (!cancelled && imageRows) {
           const typedImages = imageRows as AvatarImage[];
           setImages(typedImages);
-          const urlMap = Object.fromEntries(
-            typedImages.map((image) => [image.id, image.storage_path]).filter(([, url]) => Boolean(url)) as [string, string][]
-          );
+          const urlMap = await getSignedAvatarUrls(supabase, typedImages);
           if (!cancelled) {
             setImageUrls(urlMap);
             const primaryImage = typedImages.find((image) => image.is_primary);
-            setPrimaryImageUrl(primaryImage ? primaryImage.storage_path : null);
+            const primarySignedUrl = primaryImage
+              ? await getSignedAvatarUrl(supabase, primaryImage.storage_path)
+              : null;
+            setPrimaryImageUrl(primarySignedUrl);
           }
         }
 
@@ -228,7 +232,8 @@ export default function AvatarDetailPage({ params }: { params: { id: string } })
     }
 
     setImages((previous) => previous.map((img) => ({ ...img, is_primary: img.id === image.id })));
-    setPrimaryImageUrl(image.storage_path);
+    const signedUrl = await getSignedAvatarUrl(supabase, image.storage_path);
+    setPrimaryImageUrl(signedUrl);
     setStatusMessage("Profile image updated.");
 
     if (data) {

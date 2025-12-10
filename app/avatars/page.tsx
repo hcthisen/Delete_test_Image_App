@@ -9,8 +9,8 @@ import type { User } from "@supabase/supabase-js";
 import { logger } from "@/lib/logger";
 import { getRequestId } from "@/lib/request-id";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
-import { getAvatarsForUser, getPrimaryAvatarImages } from "@/lib/supabase/avatars";
-import type { Avatar } from "@/lib/types/avatars";
+import { getAvatarsForUser, getPrimaryAvatarImages, getSignedAvatarUrls } from "@/lib/supabase/avatars";
+import type { Avatar, AvatarImage } from "@/lib/types/avatars";
 
 export default function AvatarsPage() {
   const supabase = useMemo(() => createSupabaseBrowserClient(), []);
@@ -70,8 +70,17 @@ export default function AvatarsPage() {
         }
 
         if (isMounted && primaryImages) {
-          const urlEntries = primaryImages.map((image) => [image.avatar_id, image.storage_path]);
-          setImageMap(Object.fromEntries(urlEntries.filter(([, url]) => Boolean(url)) as [string, string][]));
+          const typedPrimaryImages = primaryImages as AvatarImage[];
+          const signedUrls = await getSignedAvatarUrls(supabase, typedPrimaryImages);
+          const avatarToUrl = Object.fromEntries(
+            Object.entries(signedUrls)
+              .map(([imageId, url]) => {
+                const matchingImage = typedPrimaryImages.find((img) => img.id === imageId);
+                return matchingImage ? [matchingImage.avatar_id, url] : null;
+              })
+              .filter(Boolean) as [string, string][]
+          );
+          setImageMap(avatarToUrl);
         }
         logger.info({
           scope: "http.avatar.list",
