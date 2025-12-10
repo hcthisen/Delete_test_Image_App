@@ -272,7 +272,7 @@ export default function AvatarDetailPage({ params }: { params: { id: string } })
           <div className="field">
             <span className="label">Lifestyle</span>
             <span className="page-lead">Marital status: {avatar.marital_status ?? "-"}</span>
-            <span className="page-lead">Hobbies: {avatar.hobbies?.join(", ") || "-"}</span>
+            <span className="page-lead">Hobbies: {avatar.hobbies || "-"}</span>
             <span className="page-lead">Orientation: {avatar.political_orientation ?? "-"}</span>
           </div>
           <div className="field">
